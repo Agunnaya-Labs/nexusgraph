@@ -1,0 +1,158 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+{
+  query: Query
+}
+
+extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.0", import: ["@key", "@shareable", "@external"])
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+directive @key(fields: federation__FieldSet!, resolvable: Boolean = true) repeatable on OBJECT | INTERFACE
+
+directive @federation__requires(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @federation__provides(fields: federation__FieldSet!) on FIELD_DEFINITION
+
+directive @external(reason: String) on OBJECT | FIELD_DEFINITION
+
+directive @federation__tag(name: String!) repeatable on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+directive @federation__extends on OBJECT | INTERFACE
+
+directive @shareable on OBJECT | FIELD_DEFINITION
+
+directive @federation__inaccessible on FIELD_DEFINITION | OBJECT | INTERFACE | UNION | ARGUMENT_DEFINITION | SCALAR | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION
+
+directive @federation__override(from: String!) on FIELD_DEFINITION
+
+type Query {
+  user(id: ID!): User
+  users: [User!]!
+  organization(id: ID!): Organization
+  organizations: [Organization!]!
+  subgraph(id: ID!): Subgraph
+  subgraphs: [Subgraph!]!
+  billingPlans: [BillingPlan!]!
+  platformSummary: PlatformSummary!
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type User
+  @key(fields: "id")
+{
+  id: ID!
+  email: String!
+  name: String!
+  role: UserRole!
+  status: UserStatus!
+  organization: Organization
+  createdAt: String!
+  lastActiveAt: String
+}
+
+enum UserRole {
+  admin
+  developer
+  viewer
+}
+
+enum UserStatus {
+  active
+  suspended
+  pending
+}
+
+type Organization
+  @key(fields: "id")
+{
+  id: ID!
+  name: String!
+  slug: String!
+  domain: String
+  plan: BillingPlan!
+  status: OrgStatus!
+  users: [User!]!
+  subgraphs: [Subgraph!]!
+  monthlyOperations: Int!
+  createdAt: String!
+}
+
+enum OrgStatus {
+  active
+  suspended
+  trialing
+  cancelled
+}
+
+type Subgraph
+  @key(fields: "id")
+{
+  id: ID!
+  name: String!
+  url: String!
+  organization: Organization!
+  status: SubgraphStatus!
+  schemaVersion: String
+  lastPublishedAt: String
+  description: String
+  operationCount: Int!
+  errorRate: Float!
+  p99Latency: Float!
+  createdAt: String!
+}
+
+enum SubgraphStatus {
+  healthy
+  degraded
+  unreachable
+  unknown
+}
+
+type BillingPlan
+  @key(fields: "id")
+{
+  id: ID!
+  name: String!
+  slug: String!
+  priceMonthly: Float!
+  priceYearly: Float!
+  maxUsers: Int
+  maxSubgraphs: Int
+  maxMonthlyOperations: Int
+  features: [String!]!
+}
+
+type PlatformSummary {
+  totalOrganizations: Int!
+  activeOrganizations: Int!
+  totalUsers: Int!
+  totalSubgraphs: Int!
+  healthySubgraphs: Int!
+}
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+scalar link__Import
+
+scalar federation__FieldSet
+
+scalar _Any
+
+type _Service {
+  sdl: String
+}
+
+union _Entity = BillingPlan | Organization | Subgraph | User

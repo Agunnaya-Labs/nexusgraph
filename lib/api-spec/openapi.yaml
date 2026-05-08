@@ -1,15 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: NexusGraph - Federated GraphQL SaaS Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: organizations
+    description: Organization/tenant management
+  - name: billing
+    description: Billing plans and subscriptions
+  - name: subgraphs
+    description: Apollo Federation subgraph management
+  - name: dashboard
+    description: Dashboard summaries and analytics
+  - name: activity
+    description: Activity feed
+
 paths:
   /healthz:
     get:
@@ -24,6 +38,603 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # Auth
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # Users
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all users
+      parameters:
+        - name: orgId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: role
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: [admin, developer, viewer, null]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+            enum: [active, suspended, pending, null]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserList"
+
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserBody"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # Organizations
+  /organizations:
+    get:
+      operationId: listOrganizations
+      tags: [organizations]
+      summary: List all organizations
+      parameters:
+        - name: plan
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: offset
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: List of organizations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrganizationList"
+
+    post:
+      operationId: createOrganization
+      tags: [organizations]
+      summary: Create a new organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrganizationBody"
+      responses:
+        "201":
+          description: Organization created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+
+  /organizations/{id}:
+    get:
+      operationId: getOrganization
+      tags: [organizations]
+      summary: Get an organization by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Organization found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateOrganization
+      tags: [organizations]
+      summary: Update an organization
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrganizationBody"
+      responses:
+        "200":
+          description: Updated organization
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Organization"
+
+    delete:
+      operationId: deleteOrganization
+      tags: [organizations]
+      summary: Delete an organization
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  # Billing
+  /billing/plans:
+    get:
+      operationId: listBillingPlans
+      tags: [billing]
+      summary: List all billing plans
+      responses:
+        "200":
+          description: List of billing plans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BillingPlan"
+
+  /billing/subscriptions/{orgId}:
+    get:
+      operationId: getSubscription
+      tags: [billing]
+      summary: Get subscription for an organization
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+    patch:
+      operationId: updateSubscription
+      tags: [billing]
+      summary: Update subscription plan
+      parameters:
+        - name: orgId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriptionBody"
+      responses:
+        "200":
+          description: Updated subscription
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscription"
+
+  # Subgraphs
+  /subgraphs:
+    get:
+      operationId: listSubgraphs
+      tags: [subgraphs]
+      summary: List all registered subgraphs
+      parameters:
+        - name: orgId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of subgraphs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subgraph"
+
+    post:
+      operationId: createSubgraph
+      tags: [subgraphs]
+      summary: Register a new subgraph
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubgraphBody"
+      responses:
+        "201":
+          description: Subgraph registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subgraph"
+
+  /subgraphs/{id}:
+    get:
+      operationId: getSubgraph
+      tags: [subgraphs]
+      summary: Get subgraph details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Subgraph details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subgraph"
+
+    patch:
+      operationId: updateSubgraph
+      tags: [subgraphs]
+      summary: Update subgraph configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubgraphBody"
+      responses:
+        "200":
+          description: Updated subgraph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subgraph"
+
+    delete:
+      operationId: deleteSubgraph
+      tags: [subgraphs]
+      summary: Remove a subgraph
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /subgraphs/{id}/publish:
+    post:
+      operationId: publishSubgraph
+      tags: [subgraphs]
+      summary: Publish/check-in a subgraph schema version
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishSubgraphBody"
+      responses:
+        "200":
+          description: Published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subgraph"
+
+  # Dashboard (wow endpoints)
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get overall platform summary metrics
+      responses:
+        "200":
+          description: Platform summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/metrics:
+    get:
+      operationId: getDashboardMetrics
+      tags: [dashboard]
+      summary: Get time-series metrics for the platform
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [7d, 30d, 90d]
+            default: 30d
+      responses:
+        "200":
+          description: Time-series metrics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MetricPoint"
+
+  /dashboard/plan-breakdown:
+    get:
+      operationId: getPlanBreakdown
+      tags: [dashboard]
+      summary: Get organization count grouped by billing plan
+      responses:
+        "200":
+          description: Plan breakdown
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanBreakdown"
+
+  # Alerts
+  /alerts:
+    get:
+      operationId: listAlerts
+      tags: [dashboard]
+      summary: Get active platform health alerts
+      responses:
+        "200":
+          description: Active alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlatformAlert"
+
+  # Global search
+  /search:
+    get:
+      operationId: globalSearch
+      tags: [dashboard]
+      summary: Search across users, organizations, and subgraphs
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResults"
+
+  # Activity
+  /activity:
+    get:
+      operationId: listActivity
+      tags: [activity]
+      summary: Get recent platform activity feed
+      parameters:
+        - name: orgId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: limit
+          in: query
+          schema:
+            type: ["integer", "null"]
+      responses:
+        "200":
+          description: Recent activity events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityEvent"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +645,533 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required:
+        - user
+        - token
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, developer, viewer]
+        status:
+          type: string
+          enum: [active, suspended, pending]
+        orgId:
+          type: ["integer", "null"]
+        orgName:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        lastActiveAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - email
+        - name
+        - role
+        - status
+        - createdAt
+
+    UserList:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+      required:
+        - users
+        - total
+
+    CreateUserBody:
+      type: object
+      properties:
+        email:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, developer, viewer]
+        orgId:
+          type: ["integer", "null"]
+        password:
+          type: string
+      required:
+        - email
+        - name
+        - role
+        - password
+
+    UpdateUserBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        role:
+          type: ["string", "null"]
+          enum: [admin, developer, viewer, null]
+        status:
+          type: ["string", "null"]
+          enum: [active, suspended, pending, null]
+        orgId:
+          type: ["integer", "null"]
+
+    Organization:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        domain:
+          type: ["string", "null"]
+        planId:
+          type: integer
+        planName:
+          type: string
+        status:
+          type: string
+          enum: [active, suspended, trialing, cancelled]
+        userCount:
+          type: integer
+        subgraphCount:
+          type: integer
+        monthlyOperations:
+          type: integer
+        createdAt:
+          type: string
+        logoUrl:
+          type: ["string", "null"]
+      required:
+        - id
+        - name
+        - slug
+        - planId
+        - planName
+        - status
+        - userCount
+        - subgraphCount
+        - monthlyOperations
+        - createdAt
+
+    OrganizationList:
+      type: object
+      properties:
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Organization"
+        total:
+          type: integer
+      required:
+        - organizations
+        - total
+
+    CreateOrganizationBody:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: string
+        domain:
+          type: ["string", "null"]
+        planId:
+          type: integer
+      required:
+        - name
+        - slug
+        - planId
+
+    UpdateOrganizationBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        domain:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+          enum: [active, suspended, trialing, cancelled, null]
+
+    BillingPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+        priceMonthly:
+          type: number
+        priceYearly:
+          type: number
+        maxUsers:
+          type: ["integer", "null"]
+        maxSubgraphs:
+          type: ["integer", "null"]
+        maxMonthlyOperations:
+          type: ["integer", "null"]
+        features:
+          type: array
+          items:
+            type: string
+      required:
+        - id
+        - name
+        - slug
+        - priceMonthly
+        - priceYearly
+        - features
+
+    Subscription:
+      type: object
+      properties:
+        orgId:
+          type: integer
+        orgName:
+          type: string
+        plan:
+          $ref: "#/components/schemas/BillingPlan"
+        status:
+          type: string
+          enum: [active, trialing, cancelled, past_due]
+        currentPeriodStart:
+          type: string
+        currentPeriodEnd:
+          type: string
+        cancelAtPeriodEnd:
+          type: boolean
+      required:
+        - orgId
+        - orgName
+        - plan
+        - status
+        - currentPeriodStart
+        - currentPeriodEnd
+        - cancelAtPeriodEnd
+
+    UpdateSubscriptionBody:
+      type: object
+      properties:
+        planId:
+          type: integer
+        cancelAtPeriodEnd:
+          type: ["boolean", "null"]
+      required:
+        - planId
+
+    Subgraph:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        url:
+          type: string
+        orgId:
+          type: integer
+        orgName:
+          type: string
+        status:
+          type: string
+          enum: [healthy, degraded, unreachable, unknown]
+        schemaVersion:
+          type: ["string", "null"]
+        lastPublishedAt:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        operationCount:
+          type: integer
+        errorRate:
+          type: number
+        p99Latency:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - url
+        - orgId
+        - orgName
+        - status
+        - operationCount
+        - errorRate
+        - p99Latency
+        - createdAt
+
+    CreateSubgraphBody:
+      type: object
+      properties:
+        name:
+          type: string
+        url:
+          type: string
+        orgId:
+          type: integer
+        description:
+          type: ["string", "null"]
+      required:
+        - name
+        - url
+        - orgId
+
+    UpdateSubgraphBody:
+      type: object
+      properties:
+        name:
+          type: ["string", "null"]
+        url:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+          enum: [healthy, degraded, unreachable, unknown, null]
+
+    PublishSubgraphBody:
+      type: object
+      properties:
+        schemaVersion:
+          type: string
+        changelog:
+          type: ["string", "null"]
+      required:
+        - schemaVersion
+
+    DashboardSummary:
+      type: object
+      properties:
+        totalOrganizations:
+          type: integer
+        activeOrganizations:
+          type: integer
+        totalUsers:
+          type: integer
+        activeUsers:
+          type: integer
+        totalSubgraphs:
+          type: integer
+        healthySubgraphs:
+          type: integer
+        totalMonthlyOperations:
+          type: integer
+        monthlyRevenue:
+          type: number
+        newOrgsThisMonth:
+          type: integer
+        churnedOrgsThisMonth:
+          type: integer
+      required:
+        - totalOrganizations
+        - activeOrganizations
+        - totalUsers
+        - activeUsers
+        - totalSubgraphs
+        - healthySubgraphs
+        - totalMonthlyOperations
+        - monthlyRevenue
+        - newOrgsThisMonth
+        - churnedOrgsThisMonth
+
+    MetricPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        operations:
+          type: integer
+        errors:
+          type: integer
+        p99Latency:
+          type: number
+        newUsers:
+          type: integer
+        newOrgs:
+          type: integer
+      required:
+        - date
+        - operations
+        - errors
+        - p99Latency
+        - newUsers
+        - newOrgs
+
+    PlanBreakdown:
+      type: object
+      properties:
+        planName:
+          type: string
+        planSlug:
+          type: string
+        orgCount:
+          type: integer
+        revenue:
+          type: number
+      required:
+        - planName
+        - planSlug
+        - orgCount
+        - revenue
+
+    PlatformAlert:
+      type: object
+      properties:
+        id:
+          type: string
+        severity:
+          type: string
+          enum: [critical, warning, info]
+        title:
+          type: string
+        description:
+          type: string
+        orgName:
+          type: ["string", "null"]
+        resourceType:
+          type: string
+        resourceName:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - severity
+        - title
+        - description
+        - resourceType
+        - resourceName
+        - createdAt
+
+    SearchResults:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              email:
+                type: string
+              role:
+                type: string
+              status:
+                type: string
+            required: [id, name, email, role, status]
+        organizations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              slug:
+                type: string
+              status:
+                type: string
+            required: [id, name, slug, status]
+        subgraphs:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+              url:
+                type: string
+              status:
+                type: string
+            required: [id, name, url, status]
+      required:
+        - users
+        - organizations
+        - subgraphs
+
+    ActivityEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [user_created, user_suspended, org_created, org_cancelled, subgraph_published, subgraph_degraded, plan_upgraded, plan_downgraded]
+        description:
+          type: string
+        orgId:
+          type: ["integer", "null"]
+        orgName:
+          type: ["string", "null"]
+        userId:
+          type: ["integer", "null"]
+        userName:
+          type: ["string", "null"]
+        metadata:
+          type: ["object", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - type
+        - description
+        - createdAt
