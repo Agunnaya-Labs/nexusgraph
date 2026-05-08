@@ -18,9 +18,10 @@ export async function startGraphQL(app: Express): Promise<void> {
 
   app.use(
     "/api/graphql",
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expressMiddleware(server, {
       context: async ({ req }) => ({ req }),
-    })
+    }) as any
   );
 
   logger.info("Apollo GraphQL server started at /api/graphql");
